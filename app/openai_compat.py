@@ -25,6 +25,9 @@ def create_openai_router(asr_model) -> APIRouter:
         min_speakers: Optional[int] = Form(None),
         max_speakers: Optional[int] = Form(None),
     ):
+        # Accepted for OpenAI compatibility; model selection is env-driven.
+        _ = model, temperature
+
         if response_format not in {"json", "verbose_json", "text", "srt", "vtt"}:
             raise HTTPException(
                 status_code=400,
@@ -50,16 +53,30 @@ def create_openai_router(asr_model) -> APIRouter:
 
             segments = result.get("segments", [])
             duration = segments[-1]["end"] if segments else 0.0
+            response_segments = []
+            for i, s in enumerate(segments):
+                segment_item = {
+                    "id": i,
+                    "start": s["start"],
+                    "end": s["end"],
+                    "text": s["text"],
+                }
+
+                # Preserve engine-specific details when available.
+                if "words" in s:
+                    segment_item["words"] = s["words"]
+                if "speaker" in s:
+                    segment_item["speaker"] = s["speaker"]
+
+                response_segments.append(segment_item)
+
             return JSONResponse(
                 {
                     "task": "transcribe",
                     "language": result.get("language", language or ""),
                     "duration": duration,
                     "text": result["text"],
-                    "segments": [
-                        {"id": i, "start": s["start"], "end": s["end"], "text": s["text"]}
-                        for i, s in enumerate(segments)
-                    ],
+                    "segments": response_segments,
                 }
             )
 
