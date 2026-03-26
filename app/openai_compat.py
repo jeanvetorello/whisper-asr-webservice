@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.utils import load_audio
@@ -19,6 +19,11 @@ def create_openai_router(asr_model) -> APIRouter:
         response_format: Optional[str] = Form("json"),
         temperature: Optional[float] = Form(None),  # accepted but ignored
     ):
+        if response_format not in {"json", "verbose_json", "text", "srt", "vtt"}:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid response_format '{response_format}'. Supported: json, verbose_json, text, srt, vtt",
+            )
         audio = load_audio(file.file)
 
         if response_format in ("json", "verbose_json"):

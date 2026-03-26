@@ -161,8 +161,8 @@ def test_language_forwarded_to_transcribe(client):
         files={"file": ("audio.mp3", b"fake", "audio/mpeg")},
     )
 
-    args = mock_asr.transcribe.call_args[0]
-    assert args[2] == "pt"  # language is 3rd positional arg
+    call_args = mock_asr.transcribe.call_args.args  # transcribe(audio, task, language, prompt, ...)
+    assert call_args[2] == "pt"  # language is 3rd positional arg
 
 
 def test_prompt_forwarded_as_initial_prompt(client):
@@ -205,3 +205,15 @@ def test_transcribe_called_with_txt_output_for_text_format(client):
 
     args = mock_asr.transcribe.call_args[0]
     assert args[7] == "txt"  # output is 8th positional arg
+
+
+def test_invalid_response_format_returns_400(client):
+    tc, mock_asr = client
+
+    response = tc.post(
+        "/v1/audio/transcriptions",
+        data={"model": "whisper-1", "response_format": "tsv"},
+        files={"file": ("audio.mp3", b"fake", "audio/mpeg")},
+    )
+
+    assert response.status_code == 400
