@@ -217,3 +217,45 @@ def test_invalid_response_format_returns_400(client):
     )
 
     assert response.status_code == 400
+
+
+def test_vad_filter_forwarded(client):
+    tc, mock_asr = client
+    mock_asr.transcribe.return_value = _json_payload()
+
+    tc.post(
+        "/v1/audio/transcriptions",
+        data={"model": "whisper-1", "vad_filter": "true"},
+        files={"file": ("audio.mp3", b"fake", "audio/mpeg")},
+    )
+
+    args = mock_asr.transcribe.call_args[0]
+    assert args[4] is True  # vad_filter is 5th positional arg
+
+
+def test_word_timestamps_forwarded(client):
+    tc, mock_asr = client
+    mock_asr.transcribe.return_value = _json_payload()
+
+    tc.post(
+        "/v1/audio/transcriptions",
+        data={"model": "whisper-1", "word_timestamps": "true"},
+        files={"file": ("audio.mp3", b"fake", "audio/mpeg")},
+    )
+
+    args = mock_asr.transcribe.call_args[0]
+    assert args[5] is True  # word_timestamps is 6th positional arg
+
+
+def test_diarize_forwarded_in_options(client):
+    tc, mock_asr = client
+    mock_asr.transcribe.return_value = _json_payload()
+
+    tc.post(
+        "/v1/audio/transcriptions",
+        data={"model": "whisper-1", "diarize": "true", "min_speakers": "2", "max_speakers": "4"},
+        files={"file": ("audio.mp3", b"fake", "audio/mpeg")},
+    )
+
+    args = mock_asr.transcribe.call_args[0]
+    assert args[6] == {"diarize": True, "min_speakers": 2, "max_speakers": 4}  # options is 7th positional arg

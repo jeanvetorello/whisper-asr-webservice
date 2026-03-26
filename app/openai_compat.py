@@ -13,11 +13,17 @@ def create_openai_router(asr_model) -> APIRouter:
     @router.post("/audio/transcriptions")
     async def transcribe(
         file: UploadFile = File(...),  # noqa: B008
-        model: str = Form(...),  # accepted but ignored — engine uses ASR_MODEL env
+        model: str = Form(...),
         language: Optional[str] = Form(None),
         prompt: Optional[str] = Form(None),
         response_format: Optional[str] = Form("json"),
-        temperature: Optional[float] = Form(None),  # accepted but ignored
+        temperature: Optional[float] = Form(None),  # ignored
+        # Whisper-specific extensions (not in OpenAI spec)
+        vad_filter: bool = Form(False),
+        word_timestamps: bool = Form(False),
+        diarize: bool = Form(False),
+        min_speakers: Optional[int] = Form(None),
+        max_speakers: Optional[int] = Form(None),
     ):
         if response_format not in {"json", "verbose_json", "text", "srt", "vtt"}:
             raise HTTPException(
@@ -27,7 +33,16 @@ def create_openai_router(asr_model) -> APIRouter:
         audio = load_audio(file.file)
 
         if response_format in ("json", "verbose_json"):
-            result_file = asr_model.transcribe(audio, "transcribe", language, prompt, False, False, {}, "json")
+            result_file = asr_model.transcribe(
+                audio,
+                "transcribe",
+                language,
+                prompt,
+                vad_filter,
+                word_timestamps,
+                {"diarize": diarize, "min_speakers": min_speakers, "max_speakers": max_speakers},
+                "json",
+            )
             result = json.loads(result_file.read())
 
             if response_format == "json":
@@ -50,7 +65,16 @@ def create_openai_router(asr_model) -> APIRouter:
 
         output_map = {"text": "txt", "srt": "srt", "vtt": "vtt"}
         output = output_map.get(response_format, "txt")
-        result_file = asr_model.transcribe(audio, "transcribe", language, prompt, False, False, {}, output)
+        result_file = asr_model.transcribe(
+            audio,
+            "transcribe",
+            language,
+            prompt,
+            vad_filter,
+            word_timestamps,
+            {"diarize": diarize, "min_speakers": min_speakers, "max_speakers": max_speakers},
+            output,
+        )
         return StreamingResponse(result_file, media_type="text/plain")
 
     return router
