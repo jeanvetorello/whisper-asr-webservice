@@ -30,16 +30,18 @@ def create_openai_router(asr_model) -> APIRouter:
 
             segments = result.get("segments", [])
             duration = segments[-1]["end"] if segments else 0.0
-            return JSONResponse({
-                "task": "transcribe",
-                "language": result.get("language", language or ""),
-                "duration": duration,
-                "text": result["text"],
-                "segments": [
-                    {"id": i, "start": s["start"], "end": s["end"], "text": s["text"]}
-                    for i, s in enumerate(segments)
-                ],
-            })
+            return JSONResponse(
+                {
+                    "task": "transcribe",
+                    "language": result.get("language", language or ""),
+                    "duration": duration,
+                    "text": result["text"],
+                    "segments": [
+                        {"id": i, "start": s["start"], "end": s["end"], "text": s["text"]}
+                        for i, s in enumerate(segments)
+                    ],
+                }
+            )
 
         output_map = {"text": "txt", "srt": "srt", "vtt": "vtt"}
         output = output_map.get(response_format, "txt")
