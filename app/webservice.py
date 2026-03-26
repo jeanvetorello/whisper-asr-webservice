@@ -14,6 +14,7 @@ from whisper import tokenizer
 
 from app.config import CONFIG
 from app.factory.asr_model_factory import ASRModelFactory
+from app.openai_compat import create_openai_router
 from app.utils import load_audio
 
 asr_model = ASRModelFactory.create_asr_model()
@@ -46,6 +47,8 @@ if path.exists(assets_path + "/swagger-ui.css") and path.exists(assets_path + "/
 
     applications.get_swagger_ui_html = swagger_monkey_patch
 
+
+app.include_router(create_openai_router(asr_model))
 
 @app.get("/", response_class=RedirectResponse, include_in_schema=False)
 async def index():
