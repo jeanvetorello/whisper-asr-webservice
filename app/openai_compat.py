@@ -55,19 +55,8 @@ def create_openai_router(asr_model) -> APIRouter:
             duration = segments[-1]["end"] if segments else 0.0
             response_segments = []
             for i, s in enumerate(segments):
-                segment_item = {
-                    "id": i,
-                    "start": s["start"],
-                    "end": s["end"],
-                    "text": s["text"],
-                }
-
-                # Preserve engine-specific details when available.
-                if "words" in s:
-                    segment_item["words"] = s["words"]
-                if "speaker" in s:
-                    segment_item["speaker"] = s["speaker"]
-
+                segment_item = dict(s)
+                segment_item.setdefault("id", i)
                 response_segments.append(segment_item)
 
             return JSONResponse(
